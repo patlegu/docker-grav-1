@@ -1,8 +1,10 @@
-FROM php:7.3-apache
+FROM php:7.4-apache
 LABEL maintainer="Andy Miller <rhuk@getgrav.org> (@rhukster)"
 
 # Enable Apache Rewrite + Expires Module
-RUN a2enmod rewrite expires
+RUN a2enmod rewrite expires && \
+    sed -i 's/ServerTokens OS/ServerTokens ProductOnly/g' \
+    /etc/apache2/conf-available/security.conf
 
 # Install dependencies
 RUN apt-get update && apt-get install -y --no-install-recommends \
@@ -22,7 +24,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     && docker-php-ext-install opcache \
     && docker-php-ext-configure intl \
     && docker-php-ext-install intl \
-    && docker-php-ext-configure gd --with-freetype-dir=/usr/include/ --with-jpeg-dir=/usr/include/ \
+    && docker-php-ext-configure gd --with-freetype --with-jpeg \
     && docker-php-ext-install -j$(nproc) gd \
     && docker-php-ext-install zip \
     && rm -rf /var/lib/apt/lists/*
@@ -38,6 +40,7 @@ RUN { \
     echo 'opcache.enable_cli=1'; \
     echo 'upload_max_filesize=128M'; \
     echo 'post_max_size=128M'; \
+    echo 'expose_php=off'; \
     } > /usr/local/etc/php/conf.d/php-recommended.ini
 
 RUN pecl install apcu \
@@ -67,7 +70,7 @@ USER root
 # Copy init scripts
 # COPY docker-entrypoint.sh /entrypoint.sh
 
-# provide container inside image for data persistance
+# provide container inside image for data persistence
 VOLUME ["/var/www/html"]
 
 # ENTRYPOINT ["/entrypoint.sh"]
